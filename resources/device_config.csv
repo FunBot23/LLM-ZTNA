@@ -1,0 +1,6 @@
+device_id,setpoint_c,mode,enabled
+hvac-controller-1,22.5,auto,true
+hvac-controller-2,26,heat,true
+hvac-controller-3,34.0,cool,false
+hvac-controller-4,19,auto,true
+ttty,21.5,auto,true

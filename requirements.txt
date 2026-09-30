@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+jinja2
+sse-starlette
+aiosqlite
+httpx
+scapy
+torch
+torch-geometric
+pandas
+numpy
+scikit-learn
+python-multipart
+bcrypt
+python-dotenv

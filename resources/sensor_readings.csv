@@ -1,0 +1,10 @@
+timestamp,location,temperature_c,humidity_pct,co2_ppm
+2025-11-04T14:00:00,building-1-lobby,22.5,61,420
+2025-11-04T14:05:00,building-1-lobby,22.6,61,418
+2025-11-04T14:10:00,building-1-lobby,22.7,62,425
+2025-11-04T14:00:00,building-2-server,18.2,45,380
+2025-11-04T14:05:00,building-2-server,18.4,45,382
+2025-11-04T14:10:00,building-2-server,18.3,45,385
+2025-11-04T14:00:00,building-3-office,21.8,55,550
+2025-11-04T14:05:00,building-3-office,21.9,55,560
+2025-11-04T14:10:00,building-3-office,22,56,570

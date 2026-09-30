@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Access Terminal — Zero-Trust Framework</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="max-w-2xl mx-auto p-4 sm:p-6">
+    <header class="mb-5 flex items-start justify-between flex-wrap gap-2">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Access Terminal</h1>
+        <p class="text-sm text-gray-600 mt-1">
+          Request access to protected resources. Every request is evaluated by the Zero-Trust Framework.
+        </p>
+      </div>
+      <div class="text-right">
+        <div class="text-xs uppercase font-medium text-gray-500 tracking-wide">Signed in as</div>
+        <div class="text-sm font-mono font-medium text-gray-800" id="username">\u2026</div>
+        <a href="#" onclick="logout(); return false;" class="text-xs text-blue-600 hover:underline">Log out</a>
+      </div>
+    </header>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+      <div class="text-xs uppercase font-medium text-blue-800 tracking-wide">Your device identity</div>
+      <div class="text-lg font-mono font-medium text-blue-900 mt-1" id="identity">loading\u2026</div>
+      <div class="text-xs text-blue-700 mt-1">
+        The framework identifies your device by its network address. Different devices see different verdicts.
+      </div>
+    </div>
+
+    <!-- ============================================================ READ -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+      <div class="px-4 py-2 border-b border-gray-200 bg-green-50 text-xs uppercase font-medium text-green-800 tracking-wide">Read</div>
+      <div class="p-3 space-y-3">
+        <div class="flex flex-wrap gap-2 items-center">
+          <span class="text-sm text-gray-700">View file</span>
+          <select id="read-file" class="border border-gray-300 rounded px-2 py-1.5 text-sm"></select>
+          <button onclick="readFile()" class="btn">Read</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="apiCall('GET','/api/device/actuator','Check actuator state')" class="btn">Check actuator</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================== MODIFY -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+      <div class="px-4 py-2 border-b border-gray-200 bg-blue-50 text-xs uppercase font-medium text-blue-800 tracking-wide">Modify</div>
+      <div class="p-3 space-y-3">
+
+        <div>
+          <div class="text-sm text-gray-700 mb-2">Edit device configuration</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="text-xs text-gray-600">
+              Device to edit
+              <select id="edit-device" onchange="loadDeviceIntoForm()"
+                      class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm mt-1"></select>
+            </label>
+            <label class="text-xs text-gray-600">
+              New name (rename)
+              <input id="edit-new-name" type="text" placeholder="(leave blank to keep)"
+                     class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm mt-1"/>
+            </label>
+            <label class="text-xs text-gray-600">
+              Setpoint (°C)
+              <input id="edit-setpoint" type="number" step="0.5" min="10" max="30"
+                     class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm mt-1"/>
+            </label>
+            <label class="text-xs text-gray-600">
+              Mode
+              <select id="edit-mode" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm mt-1">
+                <option value="auto">auto</option>
+                <option value="heat">heat</option>
+                <option value="cool">cool</option>
+              </select>
+            </label>
+          </div>
+          <div class="flex items-center gap-3 mt-2">
+            <label class="text-xs text-gray-600 flex items-center gap-1">
+              <input id="edit-enabled" type="checkbox" class="align-middle"/> enabled
+            </label>
+            <button onclick="editDevice()" class="btn ml-auto">Apply changes</button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+          <button onclick="apiCall('GET','/api/device/portal','View device control portal')" class="btn">Open portal</button>
+          <button onclick="apiCall('POST','/api/device/actuator/lock','Lock the actuator')" class="btn">Lock actuator</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================================================== SEEK ADMIN -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+      <div class="px-4 py-2 border-b border-gray-200 bg-purple-50 text-xs uppercase font-medium text-purple-800 tracking-wide">
+        Seek admin privileges
+      </div>
+      <div class="p-3 space-y-4">
+
+        <!-- Device configuration -->
+        <div class="space-y-2">
+          <div class="text-xs font-medium text-gray-600 uppercase tracking-wide">Device configuration</div>
+
+          <div class="flex flex-wrap gap-2 items-center">
+            <span class="text-sm text-gray-700">Add device</span>
+            <input id="add-device-id" type="text" placeholder="hvac-controller-5"
+                   class="border border-gray-300 rounded px-2 py-1.5 text-sm"/>
+            <input id="add-setpoint" type="number" step="0.5" value="20"
+                   class="border border-gray-300 rounded px-2 py-1.5 text-sm w-20"/>
+            <select id="add-mode" class="border border-gray-300 rounded px-2 py-1.5 text-sm">
+              <option value="auto">auto</option>
+              <option value="heat">heat</option>
+              <option value="cool">cool</option>
+            </select>
+            <button onclick="addDevice()" class="btn">Add</button>
+          </div>
+
+          <div class="flex flex-wrap gap-2 items-center">
+            <span class="text-sm text-gray-700">Delete device</span>
+            <select id="delete-device-target" class="border border-gray-300 rounded px-2 py-1.5 text-sm"></select>
+            <button onclick="deleteDevice()" class="btn">Delete</button>
+          </div>
+        </div>
+
+        <!-- Resource files -->
+        <div class="space-y-2 pt-3 border-t border-gray-100">
+          <div class="text-xs font-medium text-gray-600 uppercase tracking-wide">Resource files</div>
+
+          <div class="flex flex-wrap gap-2 items-start">
+            <span class="text-sm text-gray-700 pt-1.5 shrink-0">Create file</span>
+            <div class="flex-1 min-w-[200px] space-y-2">
+              <input id="create-filename" type="text" placeholder="notes.txt  (.csv .txt .json only)"
+                     class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"/>
+              <textarea id="create-content" placeholder="file contents" rows="3"
+                        class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono"></textarea>
+            </div>
+            <button onclick="createFile()" class="btn self-start">Create</button>
+          </div>
+
+          <div class="flex flex-wrap gap-2 items-center">
+            <span class="text-sm text-gray-700">Delete file</span>
+            <select id="delete-file-target" class="border border-gray-300 rounded px-2 py-1.5 text-sm"></select>
+            <button onclick="deleteFile()" class="btn">Delete</button>
+            <span class="text-xs text-gray-500">(core files are protected)</span>
+          </div>
+        </div>
+
+        <!-- Physical control -->
+        <div class="pt-3 border-t border-gray-100">
+          <div class="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Physical control</div>
+          <button onclick="apiCall('POST','/api/device/actuator/unlock','UNLOCK the actuator')" class="btn">Unlock actuator</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="result" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[140px]">
+      <div class="text-sm text-gray-400 text-center py-10">Tap a button above to request access.</div>
+    </div>
+  </div>
+
+  <style>
+    .btn {
+      padding: 0.5rem 0.75rem;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      color: #374151;
+      cursor: pointer;
+    }
+    .btn:hover  { background: #f9fafb; border-color: #9ca3af; }
+    .btn:active { background: #f3f4f6; }
+  </style>
+
+<script>
+const $result   = document.getElementById('result');
+const $identity = document.getElementById('identity');
+const $username = document.getElementById('username');
+
+// -- session bootstrap: if we've been logged out, bounce to /login
+(async () => {
+  try {
+    const resp = await fetch('/api/session');
+    if (!resp.ok) { window.location.href = '/login'; return; }
+    const data = await resp.json();
+    $username.textContent = data.username;
+  } catch { $username.textContent = '(unknown)'; }
+})();
+
+// -- device identity display
+(async () => {
+  try {
+    const resp = await fetch('/api/whoami');
+    const data = await resp.json();
+    $identity.textContent = data.identity;
+  } catch (e) {
+    $identity.textContent = '(unavailable)';
+  }
+})();
+
+// -- populate dropdowns
+async function refreshEditableDevices() {
+  try {
+    const resp = await fetch('/api/devices');
+    const data = await resp.json();
+    const opts = data.devices.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+    document.getElementById('delete-device-target').innerHTML = opts;
+  } catch {}
+  await refreshEditDeviceForm();
+}
+
+async function refreshFileDropdown() {
+  try {
+    const resp = await fetch('/api/device/files/list');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const nonProtected = data.files.filter(f => !f.protected).map(f => f.filename);
+    const opts = nonProtected.length
+      ? nonProtected.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('')
+      : '<option value="" disabled>(no non-protected files)</option>';
+    document.getElementById('delete-file-target').innerHTML = opts;
+  } catch {}
+}
+
+(async () => {
+  await refreshEditableDevices();
+  await refreshFileDropdown();
+  // Static list for the read dropdown (matches server's readable_files())
+  document.getElementById('read-file').innerHTML =
+    ['sensor_readings.csv','device_config.csv','actuator_state.json']
+      .map(f => `<option value="${f}">${f}</option>`).join('');
+})();
+
+async function logout() {
+  try { await fetch('/api/logout', { method: 'POST' }); } catch {}
+  window.location.href = '/login';
+}
+
+let pollTimer = null;
+let pollCount = 0;
+
+async function apiCall(method, url, label, body) {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; pollCount = 0; }
+  render(`<div class="text-sm text-gray-500">Sending ${method} ${url}\u2026</div>`);
+  try {
+    const opts = { method, headers: {} };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    const resp = await fetch(url, opts);
+    if (resp.status === 401) {
+      const data = await resp.json().catch(() => ({}));
+      if (data.requires_auth || /log in/i.test(data.detail || '')) {
+        // Session expired mid-use — kick back to login
+        window.location.href = '/login';
+        return;
+      }
+    }
+    await handleResponse(resp, method, url, label, body);
+    // Refresh dropdowns after any admin mutation
+    if (method === 'POST' && /\/config\/(create|delete)/.test(url)) await refreshEditableDevices();
+    if (method === 'POST' && /\/files\/(create|delete)/.test(url))  await refreshFileDropdown();
+  } catch (e) {
+    render(errorBlock('\u26a0 Network error', String(e), method, url));
+  }
+}
+
+async function handleResponse(resp, method, url, label, body) {
+  const ct = resp.headers.get('content-type') || '';
+  const status = resp.status;
+
+  if (status >= 200 && status < 300 && status !== 202) {
+    if (ct.includes('svg')) {
+      const svg = await resp.text();
+      render(successBlock(label, method, url) +
+             '<div class="mt-3 border border-gray-200 rounded overflow-hidden bg-gray-900">' + svg + '</div>');
+    } else if (ct.includes('html')) {
+      const html = await resp.text();
+      const escaped = html.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      render(successBlock(label, method, url) +
+             `<iframe class="mt-3 w-full border border-gray-200 rounded" style="height:420px" srcdoc="${escaped}"></iframe>`);
+    } else {
+      let data; try { data = await resp.json(); } catch { data = await resp.text(); }
+      render(successBlock(label, method, url) +
+             friendlyPayload(data) +
+             '<details class="mt-2"><summary class="text-xs text-gray-500 cursor-pointer">show raw response</summary>' +
+             '<pre class="mt-2 text-xs bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto">' + escapeHtml(JSON.stringify(data, null, 2)) + '</pre></details>');
+    }
+    return;
+  }
+
+  if (status === 202) {
+    const data = await resp.json();
+    const pid = data.pending_id;
+    render(pendingBlock(label, method, url, pid, data.pdp_reason || 'awaiting operator decision', 0));
+    pollTimer = setInterval(() => pollPending(method, url, label, body, pid), 3000);
+    return;
+  }
+
+  if (status === 403) {
+    let data; try { data = await resp.json(); } catch { data = { detail: await resp.text() }; }
+    render(deniedBlock(label, method, url, data.detail || 'access denied'));
+    return;
+  }
+
+  if (status === 429) {
+    let data; try { data = await resp.json(); } catch { data = {}; }
+    const wait = parseInt(resp.headers.get('Retry-After') || data.retry_after_seconds || 60);
+    render(retryBlock(label, method, url, wait, data.detail || `operator asked to retry in ${wait}s`));
+    return;
+  }
+
+  if (status === 400 || status === 404) {
+    let data; try { data = await resp.json(); } catch { data = {}; }
+    render(errorBlock(`\u26a0 ${status} \u2014 ${status === 400 ? 'Bad request' : 'Not found'}`,
+           data.detail || resp.statusText, method, url));
+    return;
+  }
+
+  let msg = resp.statusText;
+  try { const d = await resp.json(); msg = d.detail || JSON.stringify(d); } catch {}
+  render(errorBlock(`\u26a0 ${status} ${resp.statusText}`, msg, method, url));
+}
+
+async function pollPending(method, url, label, body, pid) {
+  pollCount++;
+  const opts = { method, headers: { 'X-Pending-ID': pid } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  try {
+    const resp = await fetch(url, opts);
+    if (resp.status === 202) {
+      const data = await resp.json();
+      render(pendingBlock(label, method, url, pid, data.detail || 'awaiting operator decision', pollCount));
+      return;
+    }
+    clearInterval(pollTimer); pollTimer = null; pollCount = 0;
+    await handleResponse(resp, method, url, label, body);
+  } catch (e) { /* transient */ }
+}
+
+// -- friendly single-line summaries per payload shape
+function friendlyPayload(data) {
+  if (typeof data !== 'object' || data === null) return '';
+  if (data.count !== undefined && data.data) {
+    return `<div class="mt-3 text-sm text-gray-700">Received <strong>${data.count}</strong> row(s) from <span class="font-mono text-xs">${escapeHtml(data.resource||'')}</span>.</div>`;
+  }
+  if (data.updated_row) {
+    const kv = Object.entries(data.updated_row).map(([k,v]) => `<span class="font-mono">${escapeHtml(k)}=${escapeHtml(String(v))}</span>`).join(', ');
+    return `<div class="mt-3 text-sm text-gray-700">Updated in <span class="font-mono text-xs">${escapeHtml(data.resource||'')}</span>: ${kv}</div>`;
+  }
+  if (data.created_row) {
+    return `<div class="mt-3 text-sm text-gray-700">Created row <span class="font-mono">${escapeHtml(data.created_row.device_id||'?')}</span> in <span class="font-mono text-xs">${escapeHtml(data.resource||'')}</span> (by <span class="font-mono">${escapeHtml(data.created_by||'?')}</span>).</div>`;
+  }
+  if (data.deleted_row) {
+    return `<div class="mt-3 text-sm text-gray-700">Deleted row <span class="font-mono">${escapeHtml(data.deleted_row.device_id||'?')}</span> from <span class="font-mono text-xs">${escapeHtml(data.resource||'')}</span> (by <span class="font-mono">${escapeHtml(data.deleted_by||'?')}</span>).</div>`;
+  }
+  if (data.created && data.created.filename) {
+    return `<div class="mt-3 text-sm text-gray-700">Created file <span class="font-mono">${escapeHtml(data.created.filename)}</span> (${data.created.size} bytes) by <span class="font-mono">${escapeHtml(data.created_by||'?')}</span>.</div>`;
+  }
+  if (data.deleted && data.filename) {
+    return `<div class="mt-3 text-sm text-gray-700">Deleted file <span class="font-mono">${escapeHtml(data.filename)}</span> by <span class="font-mono">${escapeHtml(data.deleted_by||'?')}</span>.</div>`;
+  }
+  if (data.state && typeof data.state === 'string') {
+    const emoji = data.state === 'unlocked' ? '\ud83d\udd13' : '\ud83d\udd12';
+    return `<div class="mt-3 text-sm text-gray-700">Actuator state: <strong>${emoji} ${escapeHtml(data.state)}</strong></div>`;
+  }
+  if (data.state && typeof data.state === 'object' && data.state.state) {
+    const emoji = data.state.state === 'unlocked' ? '\ud83d\udd13' : '\ud83d\udd12';
+    return `<div class="mt-3 text-sm text-gray-700">Actuator now <strong>${emoji} ${escapeHtml(data.state.state)}</strong> (last change by <span class="font-mono">${escapeHtml(data.state.last_changed_by||'-')}</span>).</div>`;
+  }
+  return '';
+}
+
+// -- Actions
+function readFile() {
+  const file = document.getElementById('read-file').value;
+  apiCall('GET', `/api/device/read?file=${encodeURIComponent(file)}`, `Read ${file}`);
+}
+
+// Populate the edit form when the user picks a device to edit.
+let _configCache = [];   // cached device_config rows for the edit form
+
+async function refreshEditDeviceForm() {
+  try {
+    // We need full config rows (not just IDs) to prefill the form.
+    const resp = await fetch('/api/device/read?file=device_config.csv&limit=100');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    _configCache = data.data || [];
+    const opts = _configCache
+      .map(r => `<option value="${escapeHtml(r.device_id)}">${escapeHtml(r.device_id)}</option>`)
+      .join('');
+    document.getElementById('edit-device').innerHTML = opts;
+    if (_configCache.length) loadDeviceIntoForm();
+  } catch {}
+}
+
+function loadDeviceIntoForm() {
+  const id = document.getElementById('edit-device').value;
+  const row = _configCache.find(r => r.device_id === id);
+  if (!row) return;
+  document.getElementById('edit-new-name').value = '';  // don't prefill rename field
+  document.getElementById('edit-setpoint').value = row.setpoint_c || '';
+  document.getElementById('edit-mode').value    = row.mode || 'auto';
+  document.getElementById('edit-enabled').checked = (row.enabled === 'true');
+}
+
+function editDevice() {
+  const device_id = document.getElementById('edit-device').value;
+  if (!device_id) return;
+  const new_name  = document.getElementById('edit-new-name').value.trim();
+  const setpoint  = parseFloat(document.getElementById('edit-setpoint').value);
+  const mode      = document.getElementById('edit-mode').value;
+  const enabled   = document.getElementById('edit-enabled').checked;
+
+  const body = { device_id, mode, enabled: String(enabled) };
+  if (!isNaN(setpoint)) body.setpoint_c = setpoint;
+  if (new_name)         body.new_device_id = new_name;
+
+  const label = new_name && new_name !== device_id
+    ? `Edit ${device_id} (rename to ${new_name})`
+    : `Edit ${device_id}`;
+  apiCall('POST', '/api/device/write', label, body);
+}
+function addDevice() {
+  const device_id = document.getElementById('add-device-id').value.trim();
+  const setpoint_c = parseFloat(document.getElementById('add-setpoint').value);
+  const mode = document.getElementById('add-mode').value;
+  if (!device_id || isNaN(setpoint_c)) {
+    render(errorBlock('\u26a0 Missing input', 'Provide a device ID and a setpoint.', '', ''));
+    return;
+  }
+  apiCall('POST', '/api/device/config/create',
+    `Add device ${device_id}`,
+    { device_id, setpoint_c, mode, enabled: true });
+}
+
+function deleteDevice() {
+  const device_id = document.getElementById('delete-device-target').value;
+  if (!device_id) return;
+  apiCall('POST', '/api/device/config/delete',
+    `Delete device ${device_id}`,
+    { device_id });
+}
+
+function createFile() {
+  const filename = document.getElementById('create-filename').value.trim();
+  const content = document.getElementById('create-content').value;
+  if (!filename) {
+    render(errorBlock('\u26a0 Missing input', 'Provide a filename ending in .csv, .txt, or .json.', '', ''));
+    return;
+  }
+  apiCall('POST', '/api/device/files/create',
+    `Create ${filename}`,
+    { filename, content });
+}
+
+function deleteFile() {
+  const filename = document.getElementById('delete-file-target').value;
+  if (!filename) return;
+  apiCall('POST', '/api/device/files/delete',
+    `Delete ${filename}`,
+    { filename });
+}
+
+// -- render helpers
+function successBlock(label, method, url) {
+  return `<div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+    <span class="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-sm font-medium">\u2713 Allowed</span>
+    <span class="text-xs text-gray-500 font-mono">${escapeHtml(method)} ${escapeHtml(url)}</span>
+  </div>
+  <div class="text-sm text-gray-800">${escapeHtml(label)}</div>`;
+}
+function deniedBlock(label, method, url, reason) {
+  return `<div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+    <span class="inline-block px-2 py-1 bg-red-100 text-red-800 rounded text-sm font-medium">\u2717 Denied</span>
+    <span class="text-xs text-gray-500 font-mono">${escapeHtml(method)} ${escapeHtml(url)}</span>
+  </div>
+  <div class="text-sm text-gray-800">${escapeHtml(label)}</div>
+  <div class="mt-2 text-xs text-red-800 bg-red-50 border border-red-200 rounded p-2">${escapeHtml(reason)}</div>`;
+}
+function pendingBlock(label, method, url, pid, reason, polls) {
+  const dots = '.'.repeat((polls % 3) + 1);
+  return `<div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+    <span class="inline-block px-2 py-1 bg-amber-100 text-amber-800 rounded text-sm font-medium">\u23f8 Awaiting human review${dots}</span>
+    <span class="text-xs text-gray-500 font-mono">${escapeHtml(method)} ${escapeHtml(url)}</span>
+  </div>
+  <div class="text-sm text-gray-800">${escapeHtml(label)}</div>
+  <div class="mt-2 text-xs text-gray-600">Request ID: <span class="font-mono">${escapeHtml(pid)}</span></div>
+  <div class="mt-1 text-xs text-gray-500 italic">${escapeHtml(reason)}</div>
+  <div class="mt-2 text-xs text-gray-500">Operator's decision will appear here automatically${polls > 0 ? ` \u2014 ${polls} polls so far` : ''}.</div>`;
+}
+function retryBlock(label, method, url, seconds, reason) {
+  return `<div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+    <span class="inline-block px-2 py-1 bg-orange-100 text-orange-800 rounded text-sm font-medium">\u23f3 Retry later</span>
+    <span class="text-xs text-gray-500 font-mono">${escapeHtml(method)} ${escapeHtml(url)}</span>
+  </div>
+  <div class="text-sm text-gray-800">${escapeHtml(label)}</div>
+  <div class="mt-2 text-xs text-orange-800 bg-orange-50 border border-orange-200 rounded p-2">Operator asked to retry in ${seconds} seconds. ${escapeHtml(reason)}</div>`;
+}
+function errorBlock(title, detail, method, url) {
+  return `<div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+    <span class="inline-block px-2 py-1 bg-gray-200 text-gray-800 rounded text-sm font-medium">${escapeHtml(title)}</span>
+    <span class="text-xs text-gray-500 font-mono">${escapeHtml(method || '')} ${escapeHtml(url || '')}</span>
+  </div>
+  <div class="mt-2 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2">${escapeHtml(detail)}</div>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function render(html) { $result.innerHTML = html; }
+</script>
+</body>
+</html>

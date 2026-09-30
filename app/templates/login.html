@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Zero-Trust Framework</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-sm w-full bg-white rounded-lg shadow-md border border-gray-200 p-6">
+    <h1 class="text-xl font-bold text-gray-800 mb-1">Zero-Trust Framework</h1>
+    <p class="text-sm text-gray-600 mb-4" id="subtitle">Sign in to access the terminal</p>
+
+    <div class="flex mb-4 border-b border-gray-200">
+      <button id="tab-login" onclick="setMode('login')"
+              class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">Log in</button>
+      <button id="tab-signup" onclick="setMode('signup')"
+              class="flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Sign up</button>
+    </div>
+
+    <label class="block text-xs uppercase font-medium text-gray-600 mb-1">Username</label>
+    <input id="username" type="text" autocomplete="username"
+           class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-3"/>
+
+    <label class="block text-xs uppercase font-medium text-gray-600 mb-1">Password</label>
+    <input id="password" type="password" autocomplete="current-password"
+           class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-4"/>
+
+    <button id="submit-btn" onclick="submit()"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium text-sm">Log in</button>
+
+    <div id="error" class="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2 hidden"></div>
+
+    <p id="hint" class="mt-4 text-xs text-gray-500 text-center">
+      New here? Click "Sign up" to create an account.
+    </p>
+  </div>
+
+<script>
+let mode = 'login';
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('subtitle').textContent =
+    m === 'login' ? 'Sign in to access the terminal' : 'Create a new account';
+  document.getElementById('submit-btn').textContent = m === 'login' ? 'Log in' : 'Sign up';
+  document.getElementById('tab-login').className =
+    'flex-1 py-2 text-sm font-medium border-b-2 ' +
+    (m === 'login' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700');
+  document.getElementById('tab-signup').className =
+    'flex-1 py-2 text-sm font-medium border-b-2 ' +
+    (m === 'signup' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700');
+  document.getElementById('password').setAttribute('autocomplete',
+    m === 'login' ? 'current-password' : 'new-password');
+  document.getElementById('hint').textContent = m === 'login'
+    ? 'New here? Click "Sign up" to create an account.'
+    : 'Username: 3\u201332 characters. Password: at least 6 characters.';
+  document.getElementById('error').classList.add('hidden');
+}
+
+async function submit() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const err = document.getElementById('error');
+  err.classList.add('hidden');
+  if (!username || !password) {
+    err.textContent = 'Enter both username and password.';
+    err.classList.remove('hidden');
+    return;
+  }
+  try {
+    const resp = await fetch('/api/' + mode, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      window.location.href = '/simulator';
+    } else {
+      err.textContent = data.error || data.detail || 'Failed';
+      err.classList.remove('hidden');
+    }
+  } catch (e) {
+    err.textContent = 'Network error \u2014 could not reach the server.';
+    err.classList.remove('hidden');
+  }
+}
+
+['username', 'password'].forEach(id => {
+  document.getElementById(id).addEventListener('keypress', e => {
+    if (e.key === 'Enter') submit();
+  });
+});
+</script>
+</body>
+</html>
